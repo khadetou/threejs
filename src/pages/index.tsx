@@ -1,18 +1,20 @@
 import type { NextPage } from 'next';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Scene, PerspectiveCamera, WebGL1Renderer, BoxGeometry, MeshBasicMaterial, Mesh, PlaneGeometry, DoubleSide, MeshPhongMaterial, DirectionalLight } from 'three';
-
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 type World = {
     plane: {
         width: number,
         height: number,
+        widthSegments: number,
+        heightSegments: number,
     }
 }
 
 const generatePlane = (planeMesh: Mesh<PlaneGeometry, MeshPhongMaterial>, world: World) => {
     planeMesh.geometry.dispose();
-    planeMesh.geometry = new PlaneGeometry(world.plane.width, world.plane.height, 10, 10);
+    planeMesh.geometry = new PlaneGeometry(world.plane.width, world.plane.height, world.plane.widthSegments, world.plane.heightSegments);
     const array: ArrayLike<number> = planeMesh.geometry.attributes.position.array;
 
     for (let i = 0; i < array.length; i += 3) {
@@ -32,6 +34,8 @@ const init = async (planeMesh: Mesh<PlaneGeometry, MeshPhongMaterial>) => {
         plane: {
             width: 10,
             height: 10,
+            widthSegments: 10,
+            heightSegments: 10,
         }
     }
 
@@ -40,6 +44,10 @@ const init = async (planeMesh: Mesh<PlaneGeometry, MeshPhongMaterial>) => {
 
     gui.add(world.plane, "height", 1, 20).onChange(() => generatePlane(planeMesh, world));
 
+    gui.add(world.plane, "widthSegments", 1, 50).onChange(() => generatePlane(planeMesh, world));
+
+    gui.add(world.plane, "heightSegments", 1, 50).onChange(() => generatePlane(planeMesh, world));
+
 }
 interface ArrayLike<T> {
     length: number;
@@ -47,14 +55,8 @@ interface ArrayLike<T> {
 }
 
 const Home: NextPage = () => {
-    const [scene, setScene] = useState<Scene | null>(new Scene());
-    const [camera, setCamera] = useState<PerspectiveCamera | null>(null);
-    const [render, setRender] = useState<WebGL1Renderer | null>(null);
-    const [box, setBox] = useState<BoxGeometry | null>(null);
-    const [material, setMaterial] = useState<MeshBasicMaterial | null>(null);
-    const [mesh, setMesh] = useState<Mesh | null>(null);
-    const [planeGeometry, setPlaneGeometry] = useState<PlaneGeometry | null>(null)
 
+    const [render, setRender] = useState<WebGL1Renderer | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
 
 
@@ -70,6 +72,10 @@ const Home: NextPage = () => {
     }, [render]);
 
 
+    const handleMouseOver = () => {
+        console.log("mouse over");
+    }
+
 
     useEffect(() => {
         const { current: canvas } = canvasRef;
@@ -80,13 +86,15 @@ const Home: NextPage = () => {
             const scw = canvas.clientWidth;
             const sch = canvas.clientHeight;
             const render = new WebGL1Renderer();
+            const scene = new Scene();
+            const camera = new PerspectiveCamera(75, scw / sch, 0.1, 1000);
+
             render.setSize(scw, sch);
             render.setPixelRatio(devicePixelRatio);
             canvas.appendChild(render.domElement);
+            new OrbitControls(camera, render.domElement);
             setRender(render);
 
-            const scene = new Scene();
-            const camera = new PerspectiveCamera(75, scw / sch, 0.1, 1000);
 
             const planeGeometry = new PlaneGeometry(10, 10, 10, 10);
             const planeMaterial = new MeshPhongMaterial({
@@ -103,6 +111,9 @@ const Home: NextPage = () => {
             light.position.set(0, 0, 1);
             scene.add(light);
 
+            const backLight = new DirectionalLight(0xffffff, 1);
+            backLight.position.set(0, 0, -1);
+            scene.add(backLight);
 
             const array: ArrayLike<number> = planeMesh.geometry.attributes.position.array;
 
@@ -124,11 +135,6 @@ const Home: NextPage = () => {
 
             animate();
 
-            setCamera(camera);
-            setScene(scene);
-            setBox(box);
-            setMaterial(material);
-            setMesh(mesh);
         }
 
 
@@ -143,7 +149,12 @@ const Home: NextPage = () => {
 
     }, [render, handleWindowResize]);
 
-
+    useEffect(() => {
+        window.addEventListener("mouseover", handleMouseOver, false);
+        return () => {
+            window.removeEventListener("mouseover", handleMouseOver, false);
+        }
+    })
 
     return (
         <div className='h-screen w-screen overflow-x-hidden'>
