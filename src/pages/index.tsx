@@ -12,6 +12,11 @@ type World = {
     }
 }
 
+type Mouse = {
+    x?: number,
+    y?: number,
+}
+
 const generatePlane = (planeMesh: Mesh<PlaneGeometry, MeshPhongMaterial>, world: World) => {
     planeMesh.geometry.dispose();
     planeMesh.geometry = new PlaneGeometry(world.plane.width, world.plane.height, world.plane.widthSegments, world.plane.heightSegments);
@@ -55,7 +60,10 @@ interface ArrayLike<T> {
 }
 
 const Home: NextPage = () => {
-
+    const [mouse, setMouse] = useState<Mouse | undefined>({
+        x: undefined,
+        y: undefined,
+    });
     const [render, setRender] = useState<WebGL1Renderer | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -73,20 +81,24 @@ const Home: NextPage = () => {
 
 
 
-    type Mouse = {
-        x?: number,
-        y?: number,
-    }
-    const mouse: Mouse = {
-        x: undefined,
-        y: undefined,
-    }
 
-    const handleMouseOver = (event: MouseEvent) => {
-        mouse.x = event.clientX;
-        mouse.y = event.clientY;
-        console.log(event.clientX);
-    }
+
+
+    const handleMouseMove = useCallback((event: MouseEvent) => {
+        setMouse({
+            x: event.clientX,
+            y: event.clientY
+        });
+    }, [mouse?.x, mouse?.y]);
+
+    useEffect(() => {
+        window.addEventListener("mousemove", handleMouseMove, false);
+
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove, false);
+        }
+    }, [mouse?.x, mouse?.y]);
+
 
 
     useEffect(() => {
@@ -161,12 +173,7 @@ const Home: NextPage = () => {
 
     }, [render, handleWindowResize]);
 
-    useEffect(() => {
-        window.addEventListener("mouseover", handleMouseOver, false);
-        return () => {
-            window.removeEventListener("mouseover", handleMouseOver, false);
-        }
-    }, [mouse, handleMouseOver]);
+
 
     return (
         <div className='h-screen w-screen overflow-x-hidden'>
