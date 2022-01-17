@@ -1,6 +1,6 @@
 import type { NextPage } from 'next';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Scene, PerspectiveCamera, WebGL1Renderer, Mesh, PlaneGeometry, DoubleSide, MeshPhongMaterial, DirectionalLight } from 'three';
+import { Scene, PerspectiveCamera, WebGL1Renderer, Mesh, PlaneGeometry, DoubleSide, MeshPhongMaterial, DirectionalLight, Raycaster, Intersection, Object3D } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 type World = {
@@ -13,8 +13,8 @@ type World = {
 }
 
 type Mouse = {
-    x?: number,
-    y?: number,
+    x: number,
+    y: number,
 }
 
 const generatePlane = (planeMesh: Mesh<PlaneGeometry, MeshPhongMaterial>, world: World) => {
@@ -60,11 +60,15 @@ interface ArrayLike<T> {
 }
 
 const Home: NextPage = () => {
-    const [mouse, setMouse] = useState<Mouse | undefined>({
-        x: undefined,
-        y: undefined,
+    const [mouse, setMouse] = useState<Mouse>({
+        x: 0,
+        y: 0,
     });
     const [render, setRender] = useState<WebGL1Renderer | null>(null);
+    const [scene, setScene] = useState<Scene | null>(null);
+    const [camera, setCamera] = useState<PerspectiveCamera | null>(null);
+    const [raycaster, setRaycaster] = useState<Raycaster | null>(null);
+    const [planeMesh, setPlaneMesh] = useState<Mesh<PlaneGeometry, MeshPhongMaterial> | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
 
 
@@ -81,23 +85,32 @@ const Home: NextPage = () => {
 
 
 
+    let intersects: Intersection<Object3D<Event>>[] = [];
 
-
+    const animate = () => {
+        requestAnimationFrame(animate);
+        if (raycaster && planeMesh) {
+            raycaster.setFromCamera(mouse, camera!);
+            intersects = raycaster!.intersectObject(planeMesh!);
+        }
+    }
 
     const handleMouseMove = useCallback((event: MouseEvent) => {
         setMouse({
-            x: event.clientX,
-            y: event.clientY
+            x: (event.clientX / innerWidth) * 2 - 1,
+            y: -(event.clientY / innerHeight) * 2 + 1,
         });
-    }, [mouse?.x, mouse?.y]);
+
+    }, [mouse.x, mouse.y]);
 
     useEffect(() => {
         window.addEventListener("mousemove", handleMouseMove, false);
-
+        animate();
+        console.log(intersects)
         return () => {
             window.removeEventListener("mousemove", handleMouseMove, false);
         }
-    }, [mouse?.x, mouse?.y]);
+    }, [mouse.x, mouse.y]);
 
 
 
@@ -112,6 +125,7 @@ const Home: NextPage = () => {
             const render = new WebGL1Renderer();
             const scene = new Scene();
             const camera = new PerspectiveCamera(75, scw / sch, 0.1, 1000);
+            const raycaster = new Raycaster();
 
             render.setSize(scw, sch);
             render.setPixelRatio(devicePixelRatio);
@@ -154,10 +168,14 @@ const Home: NextPage = () => {
             const animate = () => {
                 requestAnimationFrame(animate);
                 render.render(scene, camera);
-                // planeMesh.rotation.x += 0.01;
             }
 
             animate();
+
+            setScene(scene);
+            setCamera(camera);
+            setPlaneMesh(planeMesh)
+            setRaycaster(raycaster);
 
         }
 
