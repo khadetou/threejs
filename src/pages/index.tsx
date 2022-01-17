@@ -1,6 +1,6 @@
 import type { NextPage } from 'next';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Scene, PerspectiveCamera, WebGL1Renderer, BoxGeometry, MeshBasicMaterial, Mesh, PlaneGeometry, DoubleSide, MeshPhongMaterial, DirectionalLight } from 'three';
+import { Scene, PerspectiveCamera, WebGL1Renderer, Mesh, PlaneGeometry, DoubleSide, MeshPhongMaterial, DirectionalLight } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 type World = {
@@ -72,8 +72,20 @@ const Home: NextPage = () => {
     }, [render]);
 
 
-    const handleMouseOver = () => {
-        console.log("mouse over");
+
+    type Mouse = {
+        x?: number,
+        y?: number,
+    }
+    const mouse: Mouse = {
+        x: undefined,
+        y: undefined,
+    }
+
+    const handleMouseOver = (event: MouseEvent) => {
+        mouse.x = event.clientX;
+        mouse.y = event.clientY;
+        console.log(event.clientX);
     }
 
 
@@ -154,7 +166,7 @@ const Home: NextPage = () => {
         return () => {
             window.removeEventListener("mouseover", handleMouseOver, false);
         }
-    })
+    }, [mouse, handleMouseOver]);
 
     return (
         <div className='h-screen w-screen overflow-x-hidden'>
