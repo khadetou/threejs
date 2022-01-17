@@ -1,7 +1,8 @@
 import type { NextPage } from 'next';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Scene, PerspectiveCamera, WebGL1Renderer, Mesh, PlaneGeometry, DoubleSide, MeshPhongMaterial, DirectionalLight, Raycaster, Intersection, Object3D } from 'three';
+import { Scene, PerspectiveCamera, WebGL1Renderer, Mesh, PlaneGeometry, DoubleSide, MeshPhongMaterial, DirectionalLight, Raycaster, Intersection, Object3D, BufferAttribute } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import gsap from 'gsap';
 
 type World = {
     plane: {
@@ -26,10 +27,13 @@ const generatePlane = (planeMesh: Mesh<PlaneGeometry, MeshPhongMaterial>, world:
         const x = array[i];
         const y = array[i + 1];
         const z = array[i + 2];
-
-
         array[i + 2] = z + Math.random();
     }
+    const colors = [];
+    for (let i = 0; i < planeMesh.geometry.attributes.position.count; i++) {
+        colors.push(0, 0.19, 0.4);
+    }
+    planeMesh.geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
 }
 
 const init = async (planeMesh: Mesh<PlaneGeometry, MeshPhongMaterial>) => {
@@ -85,7 +89,7 @@ const Home: NextPage = () => {
 
 
 
-    let intersects: Intersection<Object3D<Event>>[] = [];
+    let intersects: any[] = [];
 
     const animate = () => {
         requestAnimationFrame(animate);
@@ -106,7 +110,65 @@ const Home: NextPage = () => {
     useEffect(() => {
         window.addEventListener("mousemove", handleMouseMove, false);
         animate();
-        console.log(intersects)
+        if (intersects.length > 0) {
+            const { color } = intersects[0].object.geometry.attributes;
+
+
+            //Verticy 1
+            color.setX(intersects[0].face.a, 0.1);
+            color.setY(intersects[0].face.a, 0.5);
+            color.setZ(intersects[0].face.a, 1);
+
+            //Verticy 2
+            color.setX(intersects[0].face.b, 0.1);
+            color.setY(intersects[0].face.b, .5);
+            color.setZ(intersects[0].face.b, 1);
+
+            //Verticy 3
+            color.setX(intersects[0].face.c, 0.1);
+            color.setY(intersects[0].face.c, .5);
+            color.setZ(intersects[0].face.c, 1);
+
+
+            color.needsUpdate = true;
+
+            const initialColor = {
+                r: 0,
+                g: 0.19,
+                b: 0.4
+            }
+
+            const hoverColor = {
+                r: 0.1,
+                g: 0.5,
+                b: 1
+            }
+
+            gsap.to(hoverColor, {
+                r: initialColor.r,
+                g: initialColor.g,
+                b: initialColor.b,
+                onUpdate: () => {
+
+                    //Verticy 1
+                    color.setX(intersects[0] && intersects[0].face.a, hoverColor.r);
+                    color.setY(intersects[0] && intersects[0].face.a, hoverColor.g);
+                    color.setZ(intersects[0] && intersects[0].face.a, hoverColor.b);
+
+                    //Verticy 2
+                    color.setX(intersects[0] && intersects[0].face.b, hoverColor.r);
+                    color.setY(intersects[0] && intersects[0].face.b, hoverColor.g);
+                    color.setZ(intersects[0] && intersects[0].face.b, hoverColor.b);
+
+                    //Verticy 3
+                    color.setX(intersects[0] && intersects[0].face.c, hoverColor.r);
+                    color.setY(intersects[0] && intersects[0].face.c, hoverColor.g);
+                    color.setZ(intersects[0] && intersects[0].face.c, hoverColor.b);
+                    color.needsUpdate = true;
+                }
+            })
+            // console.log(intersects[0].object.geometry.attributes.color)
+        }
         return () => {
             window.removeEventListener("mousemove", handleMouseMove, false);
         }
@@ -136,9 +198,9 @@ const Home: NextPage = () => {
 
             const planeGeometry = new PlaneGeometry(10, 10, 10, 10);
             const planeMaterial = new MeshPhongMaterial({
-                color: 0xff0000,
                 side: DoubleSide,
-                flatShading: true
+                flatShading: true,
+                vertexColors: true,
             });
             const planeMesh = new Mesh(planeGeometry, planeMaterial);
             scene.add(planeMesh)
@@ -163,6 +225,13 @@ const Home: NextPage = () => {
 
                 array[i + 2] = z + Math.random();
             }
+
+            const colors = [];
+            for (let i = 0; i < planeMesh.geometry.attributes.position.count; i++) {
+                colors.push(0, 0.19, 0.4);
+            }
+            planeMesh.geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
+
 
 
             const animate = () => {
